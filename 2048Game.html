@@ -7,14 +7,18 @@
     <script src="2048game.js"></script>
 </head>
 <body>
-    <p>score:</p>
-    <div id="gridPanel"></div>
-    <p>
-        <!--前景提示框-->
-        Game Over!<br>
-        Score:<span id="finalScore"></span><br>
-        <a class="button" onclick="game.start()">
+    <p>score:<span id="score"></span> record:<span id="topScore"></span></p>
+     <div id="gridPanel">
+    
+    </div>
+    <div id="gameOver">
+        <div><!--背景div--></div>
+        <p><!--前景提示框-->
+            Game Over!<br>
+            Score:<span id="finalScore"></span><br>
+            <a class="button" onclick="game.start()">
             Try again!</a>
-    </p>
+        </p>
+    </div>
 </body>
 </html>

@@ -10,6 +10,7 @@ var game={
     state:1,
     GAME_OVER:0,
     RUNNING:1,
+    top:0,
 
     init:function(){
         var div=document.getElementById("gridPanel");
@@ -26,8 +27,13 @@ var game={
         div.innerHTML=grids+cells;
     },
     start:function(){
+    	this.state=this.RUNNING;
         this.init();
         this.data=[];
+        this.score=0;
+        if(document.cookie.indexOf("=")!=-1){
+        	this.top=document.cookie.split("=")[1];
+        }
         for(var r=0;r<this.RN;r++){
             this.data[r]=[];
             for(var c=0;c<this.CN;c++){
@@ -64,19 +70,29 @@ var game={
             }
         }
     },
-    moveUp:function(){
-        var before=String(this.data);
-        for(var c=0;c<this.CN;c++){
-            this.moveUpInCol(c);
-        }
+    move:function(iterator){
+    	var before=String(this.data);
+        iterator();
         var after=String(this.data);
         if(before!=after){
             this.randomNum();
             if(this.isGameover()){
                 this.state=this.GAME_OVER;
+                if(this.score>this.top){
+                	var now=new Date();
+                    now.setFullYear(now.getFullYear()+1);
+                    document.cookie="top1="+this.score+
+                    ";expires="+now.toGMTString();
+                }
             }
-        }
+        } 	
         this.updateView();
+    },
+    moveUp:function(){
+        var me=this;
+        this.move(function(){for(var c=0;c<me.CN;c++){
+            me.moveUpInCol(c);
+        }});
     },
     moveUpInCol:function(c){
         for(var r=0;r<this.RN-1;r++){
@@ -88,7 +104,7 @@ var game={
                 this.data[nextr][c]=0;
                 r--;
                 }else if(this.data[r][c]==this.data[nextr][c]){
-                this.data[r][c]*=2;
+                this.score+=(this.data[r][c]*=2);
                 this.data[nextr][c]=0;
                 }
             }
@@ -102,18 +118,10 @@ var game={
     },
 
     moveDown:function(){
-        var before=String(this.data);
-        for(var c=0;c<this.CN;c++){
-            this.moveDownInCol(c);
-        }
-        var after=String(this.data);
-        if(before!=after){
-            this.randomNum();
-            if(this.isGameover()){
-                this.state=this.GAME_OVER;
-            }
-        }
-        this.updateView();
+        var me=this;
+        this.move(function(){for(var c=0;c<me.CN;c++){
+            me.moveDownInCol(c);
+        }});   
     },
     moveDownInCol:function(c){
         for(var r=this.RN-1;r>0;r--){
@@ -125,7 +133,7 @@ var game={
                 this.data[prer][c]=0;
                 r++;
                 }else if(this.data[r][c]==this.data[prer][c]){
-                this.data[r][c]*=2;
+                this.score+=(this.data[r][c]*=2);
                 this.data[prer][c]=0;
                 }
             }
@@ -138,135 +146,67 @@ var game={
             if(preData!=0){return prer;}
         }return -1;
     },
-    moveRight:function(){//右移所有行
-    //给data拍照，保存在变量before中
-    var before=String(this.data);
-    //r从0开始，到<RN结束，遍历data中每一行
-    for(var r=0;r<this.RN;r++){
-      //调用moveRightInRow,移动第r行
-      this.moveRightInRow(r);
-    }//(遍历结束)
-    //再给data拍照，保存在变量after中
-    var after=String(this.data);
-    if(before!=after){//如果发生了变化
-      //随机生成数，更新页面
-      this.randomNum();
-      //检查当前游戏是否结束
-      if(this.isGameover()){
-        //如果游戏结束，就将游戏状态改为GAMEOVER
-        this.state=this.GAME_OVER;
-        //如果当前得分>top
-        if(this.score>this.top){
-          //将当前得分写入cookie
-          var now=new Date();
-          now.setFullYear(now.getFullYear()+1);
-          document.cookie="top1="+this.score+
-                          ";expires="+now.toGMTString();
-        }
-      }
-      this.updateView();
-    }
+    moveRight:function(){
+    	var me=this;
+    	this.move(function(){for(var r=0;r<me.RN;r++){
+      me.moveRightInRow(r);
+    }});
   },
-  moveRightInRow:function(r){//右移第r行
-    //c从CN-1开始，到>0结束，每次-1
+  moveRightInRow:function(r){
     for(var c=this.CN-1;c>0;c--){
-      //调用getPrevInRow，查找c位置前一个不为0的位置，保存在变量prevc中
       var prevc=this.getPrevInRow(r,c);
-      //如果没找到,就退出循环
       if(prevc==-1){break;}
-      else{//否则
-        if(this.data[r][c]==0){//如果当前元素为0
-          //将r行prevc位置的元素赋值给当前元素
+      else{
+        if(this.data[r][c]==0){
           this.data[r][c]=this.data[r][prevc];
-          //将prevc位置的元素清零
+         
           this.data[r][prevc]=0;
-          c++; //c留在原地
+          c++; 
         }else if(this.data[r][c]==
                   this.data[r][prevc]){
-        //否则，如果当前元素等于r行prevc位置的元素
-          this.data[r][c]*=2;//当前元素*=2;
-          //将r行prevc位置的元素清零
+          this.score+=(this.data[r][c]*=2);
           this.data[r][prevc]=0;
-          //将当前元素的值累加到score中
-          this.score+=this.data[r][c];
         }
       }
     }
   },
-  getPrevInRow:function(r,c){//查找r行c之前的不为0的位置
-    //prevc从c-1开始，到>=0结束,每次-1
+  getPrevInRow:function(r,c){
     for(var prevc=c-1;prevc>=0;prevc--){
-      //如果r行prevc位置的元素不等于0
       if(this.data[r][prevc]!=0){
-        return prevc;//就返回prevc
+        return prevc;
       }
-    }//(遍历结束)返回-1
+    }
     return -1;
   },
-  moveLeft:function(){//左移所有行
-    var before=String(this.data);//移动前拍张照
-    //r从0开始，到<RN结束，遍历data中每一行
-    for(var r=0;r<this.RN;r++){
-      //调用moveLeftInRow(r)，移动第r行
-      this.moveLeftInRow(r);
-    }//(遍历结束)
-    var after=String(this.data);//移动后拍张照
-    //如果发生了移动，才随机生成数,更新页面
-    if(before!=after){
-      this.randomNum();
-      //检查当前游戏是否结束
-      if(this.isGameover()){
-        //如果游戏结束，就将游戏状态改为GAMEOVER
-        this.state=this.GAME_OVER;
-        //如果当前得分>top
-        if(this.score>this.top){
-          //将当前得分写入cookie
-          var now=new Date();
-          now.setFullYear(now.getFullYear()+1);
-          document.cookie="top1="+this.score+
-                          ";expires="+now.toGMTString();
-        }
-      }
-      this.updateView();
-    }
+  moveLeft:function(){
+  	var me=this;
+    this.move(function(){for(var r=0;r<me.RN;r++){
+      me.moveLeftInRow(r);
+    }}); 
   },
-  moveLeftInRow:function(r){//左移第r行
-    //c从0开始，到<CN-1结束，每次增1
+  moveLeftInRow:function(r){
     for(var c=0;c<this.CN-1;c++){
-      //调用getNextInRow(r,c),查找r行c位置之后，下一个不为0的位置，保存在变量nextc中
       var nextc=this.getNextInRow(r,c);
-      //如果nextc等于-1，就退出循环
       if(nextc==-1){break;}
-      else{//否则
-        //如果data中r行c列为0
+      else{
         if(this.data[r][c]==0){
-          //将data中r行nextc位置的值赋值给c位置
           this.data[r][c]=this.data[r][nextc];
-          //将data中r行nextc位置重置为0
           this.data[r][nextc]=0;
-          c--;//让c倒退一步，抵消c++，留在原地
+          c--;
         }else if(this.data[r][c]==
                   this.data[r][nextc]){
-        //否则 如果data中r行c列的值等于data中r行nextc列的值
-          //将data中r行c列的值*=2;
-          this.data[r][c]*=2;
-          //将data中r行nextc的值设置为0
+         this.score+=(this.data[r][c]*=2);
           this.data[r][nextc]=0;
-          //将当前元素的值累加到score中
-          this.score+=this.data[r][c];
         }
       }
     }
   },
-  //查找r行c列之后下一个不为0的位置
   getNextInRow:function(r,c){
-    //nextc从c+1开始，到<CN结束，每次增1
-    for(var nextc=c+1;nextc<this.CN;nextc++){
-      //如果data中r行nextc位置不等于0
+    for(var nextc=c+1;nextc<this.CN;nextc++){   
       if(this.data[r][nextc]!=0){
-        return nextc; //就返回nextc
+        return nextc; 
       }
-    }//(遍历结束)返回-1
+    }
     return-1;
   },
 
@@ -283,6 +223,14 @@ var game={
                 }
             }
         }
+        score.innerHTML=this.score;
+        topScore.innerHTML=this.top;
+        if(this.state==this.GAME_OVER){
+        	gameOver.style.display="block";
+        	finalScore.innerHTML=this.score;
+        }else{
+        	gameOver.style.display="none";
+    	}
     },
 
     isGameover:function(){
